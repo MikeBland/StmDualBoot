@@ -1,3 +1,12 @@
+# STM Bootloader for Multiprotocol 4-in-1 board
+This supports both USB and "Flash from Tx" methods
+Create a sub-directory called "bootloader_only_binaries" to received the binary file.
+Use "make m4in1" to build the binary file.
+You should end with a file "m4in1.bin"
+
+Original USB bootloader code from:
+https://github.com/rogerclarkmelbourne/STM32duino-bootloader
+
 # STM32duino-bootloader
 
 Please Note. This code does not work with all STM32F103 Boards
