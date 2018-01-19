@@ -20,7 +20,7 @@
 //#include "hardware.h"
 
 #define OPTIBOOT_MAJVER 4
-#define OPTIBOOT_MINVER 5
+#define OPTIBOOT_MINVER 6
 
 extern uint32_t flashWriteWord(u32 addr, u32 word) ;
 extern uint32_t flashErasePage(u32 addr) ;
