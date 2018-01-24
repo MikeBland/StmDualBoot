@@ -187,7 +187,7 @@ static void serialInit()
 	RCC->APB1ENR |= RCC_APB1ENR_USART3EN ;		// Enable clock
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN ;
 	RCC->APB2ENR |= RCC_APB2ENR_IOPBEN ;
-//	RCC->APB2ENR |= RCC_APB2ENR_AFIOEN ;
+	RCC->APB2ENR |= RCC_APB2ENR_AFIOEN ;
 	
 //	GPIOA->CRH = (GPIOA->CRH & 0xFFFFFF0F) | 0x00000090 ;	// PA9
 	// USART2 TX is PA2, only Rx used
@@ -221,6 +221,7 @@ void serialSetup()
 	GPIOA->BSRR = 0x000000F1 ;
 	GPIOA->CRL = (GPIOA->CRL & 0x0000FF00) | 0x88880028 ;	// LED and inputs
 	
+	AFIO->MAPR = ( AFIO->MAPR & ~AFIO_MAPR_SWJ_CFG ) | AFIO_MAPR_SWJ_CFG_DISABLE ;
 	// Input with pullup, 1000B, and set the ODR bit
 
 	GPIOB->CRL = (GPIOB->CRL & 0xFFFF0F0F) | 0x00002020 ;	// PB1 and PB3, invert controls
