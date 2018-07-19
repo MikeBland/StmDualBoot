@@ -1,4 +1,3 @@
-
 #define _FLASH_PROG		1
 
 
@@ -41,6 +40,7 @@ static void start_timer2()
 	TIM2->CNT = 0 ;
 	TIM2->PSC = 71 ;			// 72-1;for 72 MHZ /1.0usec/(71+1)
 	TIM2->ARR = 0xFFFF;		//count till max
+	TIM2->CR1 = 1 ;
 }
 
 //void RCC_DeInit(void)
@@ -185,6 +185,7 @@ static void serialInit()
 {
 	RCC->APB1ENR |= RCC_APB1ENR_USART2EN ;		// Enable clock
 	RCC->APB1ENR |= RCC_APB1ENR_USART3EN ;		// Enable clock
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN	  ;     //enable tim2 clock
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN ;
 	RCC->APB2ENR |= RCC_APB2ENR_IOPBEN ;
 	RCC->APB2ENR |= RCC_APB2ENR_AFIOEN ;
@@ -227,6 +228,7 @@ void serialSetup()
 	GPIOB->CRL = (GPIOB->CRL & 0xFFFF0F0F) | 0x00002020 ;	// PB1 and PB3, invert controls
 	GPIOB->BRR = 0x00000008 ;
 	GPIOB->BSRR = 0x00000002 ;
+	//GPIOB->BSRR = 0x0000000A ;
 }
 
 uint32_t checkSerialBindButtonPressed()
@@ -277,11 +279,17 @@ void bgetNch(uint8_t count)
 void testLoader()
 {
 	uint16_t data ;
+	uint8_t ch ;
+	
+	
 	data = test0() ;
-	if ( data == STK_GET_SYNC )
+	ch=data;
+	if ( ch == STK_GET_SYNC )
 	{
-		loader(0) ;
+		loader(ch) ;
 	}
+
+			
 	if ( checkSerialBindButtonPressed() )	// Load from Tx
 	{
 		loader(0) ;
@@ -295,6 +303,7 @@ void loader( uint32_t check )
   uint8_t GPIOR0 ;
 	uint32_t address = 0 ;
   uint8_t lastCh ;
+  
 
 //	ResetReason = RCC->CSR ;
 //  RCC->CSR |= RCC_CSR_RMVF ;
@@ -326,11 +335,12 @@ void loader( uint32_t check )
 //			return ;
 //		}
 //	}
-	disableInterrupts() ;
+
+	
 
 	NotSynced = 1 ;
-	lastCh = 0 ;
-	flashUnlock() ;
+	lastCh = check;
+	
 	for (;;)
 	{
 		while ( NotSynced )
@@ -341,10 +351,18 @@ void loader( uint32_t check )
 			if ( data != 0xFFFF )
 			{
 				ch = data ;
-				if ( ( lastCh == STK_GET_SYNC ) && ( ch == CRC_EOP ) )
+				if ( lastCh == STK_GET_SYNC  && ch != STK_GET_SYNC) 
 				{
-					NotSynced = 0 ;
-					break ;
+					if	( ch == CRC_EOP ) 
+					{
+						NotSynced = 0 ;
+						break ;
+					}
+					else
+					{
+						if (check) //return if not bind button pressed
+							return ;
+					}
 				}
 				lastCh = ch ; 
 			}
@@ -355,7 +373,8 @@ void loader( uint32_t check )
 				GPIOA->ODR ^= 0x0002 ;
 			}
 		}
-		
+	disableInterrupts() ;
+	flashUnlock();
     /* get character from UART */
     ch = getch() ;
     if(ch == STK_GET_PARAMETER)
