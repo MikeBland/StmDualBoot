@@ -19,7 +19,7 @@
 //#include "hardware.h"
 
 #define OPTIBOOT_MAJVER 4
-#define OPTIBOOT_MINVER 6
+#define OPTIBOOT_MINVER 7
 
 extern uint32_t flashWriteWord(u32 addr, u32 word) ;
 extern uint32_t flashErasePage(u32 addr) ;
@@ -34,6 +34,7 @@ uint32_t LongCount ;
 uint8_t Buff[512] ;
 
 uint8_t NotSynced ;
+uint8_t SyncCount ;
 
 static void start_timer2()
 {	
@@ -214,6 +215,17 @@ uint32_t resetReason()
 	return ( ResetReason & RCC_CSR_SFTRSTF ) ? 1 : 0 ;
 }
 
+static void setNormalPort()
+{
+	GPIOB->BRR = 0x00000008 ; 
+	GPIOB->BSRR = 0x00000002 ;
+}
+
+static void setInvertedPort()
+{
+	GPIOB->BSRR = 0x0000000A ;
+}
+
 void serialSetup()
 {
 	serialInit() ;
@@ -226,9 +238,7 @@ void serialSetup()
 	// Input with pullup, 1000B, and set the ODR bit
 
 	GPIOB->CRL = (GPIOB->CRL & 0xFFFF0F0F) | 0x00002020 ;	// PB1 and PB3, invert controls
-	GPIOB->BRR = 0x00000008 ;
-	GPIOB->BSRR = 0x00000002 ;
-	//GPIOB->BSRR = 0x0000000A ;
+	setNormalPort() ; //start comms without inversion
 }
 
 uint32_t checkSerialBindButtonPressed()
@@ -303,7 +313,7 @@ void loader( uint32_t check )
   uint8_t GPIOR0 ;
 	uint32_t address = 0 ;
   uint8_t lastCh ;
-  
+  uint8_t is_inverted = 0 ;
 
 //	ResetReason = RCC->CSR ;
 //  RCC->CSR |= RCC_CSR_RMVF ;
@@ -339,6 +349,7 @@ void loader( uint32_t check )
 	
 
 	NotSynced = 1 ;
+	SyncCount = 0 ;
 	lastCh = check;
 	
 	for (;;)
@@ -377,7 +388,30 @@ void loader( uint32_t check )
 	flashUnlock();
     /* get character from UART */
     ch = getch() ;
-    if(ch == STK_GET_PARAMETER)
+		if (ch==STK_GET_SYNC) // we only count if we get 5 syncs in a row. Any other value restarts the count
+		{
+			SyncCount += 1 ;
+		}
+		else
+		{
+			SyncCount = 0 ;
+		}
+		if (SyncCount > 5)
+		{ //toggle tx inversion every 5 sequential sync requests
+			if (is_inverted==1)
+			{
+				setNormalPort() ;
+				is_inverted = 0 ;
+			}
+			else
+			{
+				setInvertedPort() ;
+				is_inverted = 1 ;
+			}
+			SyncCount = 0 ;
+		}
+    
+		if(ch == STK_GET_PARAMETER)
 		{
       GPIOR0 = getch() ;
       verifySpace() ;
