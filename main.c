@@ -73,10 +73,10 @@ int main()
         default:
             strobePin(LED_BANK, LED_PIN, STARTUP_BLINKS, BLINK_FAST,LED_ON_STATE);
 //            if (!checkUserCode(USER_CODE_FLASH0X8005000) && !checkUserCode(USER_CODE_FLASH0X8002000))
-            if (!checkUserCode(USER_CODE_FLASH0X8002000))
-            {
-                no_user_jump = TRUE;
-            }
+            //if (!checkUserCode(USER_CODE_FLASH0X8002000))
+            //{
+            //    no_user_jump = TRUE;
+            //}
 //            else if (readButtonState())
 //            {
 //                no_user_jump = TRUE;
@@ -88,6 +88,12 @@ int main()
 //		{
 //			no_user_jump = TRUE;
 //		}																		                
+
+    // Read the state of the USB D- pin (indicates if USB is plugged in)
+    if (!(GET_REG(GPIO_IDR(GPIOA)) & (0x01 << 11))) {
+        // Stay in the bootloader if D1 is low (USB is plugged in)
+        no_user_jump = TRUE;
+    }
 
     if (!dont_wait)
     {
