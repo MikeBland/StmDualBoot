@@ -267,7 +267,7 @@ void strobePin(u32 bank, u8 pin, u8 count, u32 rate,u8 onState);
 void systemHardReset( void );
 void systemReset(void);
 void setupCLK(void);
-void setupLEDAndButton(void);
+//void setupLEDAndButton(void);
 void setupFLASH(void);
 uint32_t checkUserCode(u32 usrAddr);
 void jumpToUser(u32 usrAddr);

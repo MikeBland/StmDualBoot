@@ -1,0 +1,3 @@
+.dep/
+build/
+bootloader_only_binaries/

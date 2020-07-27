@@ -150,29 +150,6 @@ void setupCLK(void) {
     pRCC->APB1ENR |= RCC_APB1ENR_USB_CLK;
 }
 
-
-void setupLEDAndButton (void)
-{
-    // SET_REG(AFIO_MAPR,(GET_REG(AFIO_MAPR) & ~AFIO_MAPR_SWJ_CFG) | AFIO_MAPR_SWJ_CFG_NO_JTAG_NO_SW);// Try to disable SWD AND JTAG so we can use those pins (not sure if this works).
-
-#if defined(BUTTON_BANK) && defined (BUTTON_PIN) && defined (BUTTON_PRESSED_STATE)
-    SET_REG(GPIO_CR(BUTTON_BANK,BUTTON_PIN),(GPIO_CR(BUTTON_BANK,BUTTON_PIN) & crMask(BUTTON_PIN)) | CR_INPUT_PU_PD << CR_SHITF(BUTTON_PIN));
-
-    gpio_write_bit(BUTTON_BANK, BUTTON_PIN,1-BUTTON_PRESSED_STATE);// set pulldown resistor in case there is no button.
-#endif
-    SET_REG(GPIO_CR(LED_BANK,LED_PIN),(GET_REG(GPIO_CR(LED_BANK,LED_PIN)) & crMask(LED_PIN)) | CR_OUTPUT_PP << CR_SHITF(LED_PIN));
-
-//	pGPIOA->BSRR = 0x000000F1 ;
-//	pGPIOA->CRL = pGPIOA->CRL & 0x0000FF00 | 0x88880028 ;	// LED and inputs
-
-//	// Input with pullup, 1000B, and set the ODR bit
-
-//	pGPIOB->CRL = pGPIOB->CRL & 0xFFFF0F0F | 0x00002020 ;	// PB1 and PB3, invert controls
-//	pGPIOB->BRR = 0x00000008 ;
-//	pGPIOB->BSRR = 0x00000002 ;
-
-}
-
 void setupFLASH() {
     /* configure the HSI oscillator */
     if ((pRCC->CR & 0x01) == 0x00) {
@@ -259,38 +236,38 @@ void bkp10Write(u16 value)
 // Backup reg 10 is cleared to 0
 uint32_t checkAndClearBootloaderFlag()
 {
-  bool flagSet = 0 ;// Flag not used
-	uint16_t dr10 ;
+    bool flagSet = 0 ;// Flag not used
+    uint16_t dr10 ;
 
-  // Enable clocks for the backup domain registers
-  pRCC->APB1ENR |= (RCC_APB1ENR_PWR_CLK | RCC_APB1ENR_BKP_CLK);
+    // Enable clocks for the backup domain registers
+    pRCC->APB1ENR |= (RCC_APB1ENR_PWR_CLK | RCC_APB1ENR_BKP_CLK);
 
 	dr10 = pBKP->DR10 ;
   
 	if ( resetReason() )	// soft reset
 	{
 		switch (dr10)
-  	{
-  	  case RTC_BOOTLOADER_FLAG:
-  	    flagSet = 0x01 ;
-  	  break;
-  	  case RTC_BOOTLOADER_JUST_UPLOADED:
-  	    flagSet = 0x02 ;
-  	  break;
-			case RTC_BOOTLOADER_APP_RUNNING :
-				flagSet = 3 ;
-  	  break;
-  	}
+        {
+        case RTC_BOOTLOADER_FLAG:
+            flagSet = 0x01;
+            break;
+        case RTC_BOOTLOADER_JUST_UPLOADED:
+            flagSet = 0x02;
+            break;
+            case RTC_BOOTLOADER_APP_RUNNING:
+            flagSet = 0x03;
+        break;
+        }
 	}
   
 	if ( dr10 != 0 )
-  {
-    bkp10Write( 0x0000 ) ;// Clear the flag
-    // Disable clocks
-    pRCC->APB1ENR &= ~(RCC_APB1ENR_PWR_CLK | RCC_APB1ENR_BKP_CLK) ;
-  }
+    {
+        bkp10Write( 0x0000 ) ;// Clear the flag
+        // Disable clocks
+        pRCC->APB1ENR &= ~(RCC_APB1ENR_PWR_CLK | RCC_APB1ENR_BKP_CLK) ;
+    }
 
-  return flagSet ;
+    return flagSet ;
 }
 
 

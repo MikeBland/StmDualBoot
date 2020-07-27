@@ -49,79 +49,73 @@ extern bool readButtonState() ;
 int main()
 {
     bool no_user_jump = FALSE;
-    bool dont_wait=FALSE;
+    bool dont_wait = FALSE;
 
     systemReset(); // peripherals but not PC
     setupCLK();
-    setupLEDAndButton();
     setupUSB();
     setupFLASH();
-		serialSetup() ;
+	serialSetup() ;
 
+    // Configure the LED pin
+    SET_REG(GPIO_CR(LED_BANK,LED_PIN),(GET_REG(GPIO_CR(LED_BANK,LED_PIN)) & crMask(LED_PIN)) | CR_OUTPUT_PP << CR_SHITF(LED_PIN));
+
+    // Check the reset reason and clear the flags
     switch(checkAndClearBootloaderFlag())
     {
         case 0x01:
+            // Persistent bootloader mode - don't jump to the app code
             no_user_jump = TRUE;
             strobePin(LED_BANK, LED_PIN, STARTUP_BLINKS, BLINK_FAST,LED_ON_STATE);
-        break;
+            break;
         case 0x02:
-            dont_wait=TRUE;
-        break ;
-        case 3 :
-          no_user_jump = TRUE;
-        break ;
+            // Firmware just uploaded - don't wait for another upload, go straight to the app code
+            dont_wait = TRUE;
+            break;
+        case 0x03:
+            // Bootloader app is running - don't jump to the app code
+            no_user_jump = TRUE;
+            break;
         default:
-            strobePin(LED_BANK, LED_PIN, STARTUP_BLINKS, BLINK_FAST,LED_ON_STATE);
-//            if (!checkUserCode(USER_CODE_FLASH0X8005000) && !checkUserCode(USER_CODE_FLASH0X8002000))
+            // Any other condition (e.g. power-on reset)
+
+            // Strobe the LED quickly
+            strobePin(LED_BANK, LED_PIN, STARTUP_BLINKS, BLINK_FAST, LED_ON_STATE);
+
+            // Check if there is a valid application in flash
             if (!checkUserCode(USER_CODE_FLASH0X8002000))
             {
+                // No valid application - don't jump to the app code
                 no_user_jump = TRUE;
             }
-//            else if (readButtonState())
-//            {
-//                no_user_jump = TRUE;
-//            }
-        break;
+            break;
     }
 
-//		if ( resetReason() )
-//		{
-//			no_user_jump = TRUE;
-//		}																		                
+    // Read the state of the USB D- pin (PA11) (indicates if USB is plugged in)
+    if (!(GET_REG(GPIO_IDR(GPIOA)) & (0x01 << 11))) {
+        // Stay in the bootloader if D- is low (USB is plugged in)
+        no_user_jump = TRUE;
+    }
 
+    // Wait for an upload attempt, unless we shouldn't
     if (!dont_wait)
     {
         int delay_count = 0;
 
+        // Wait here until the startup delay expires, or indefinitely if we shouldn't jump to the app code for some reason
         while ((delay_count++ < BOOTLOADER_WAIT) || no_user_jump)
         {
-            strobePin(LED_BANK, LED_PIN, 1, BLINK_SLOW,LED_ON_STATE);
+            // Strobe the LED less quickly
+            strobePin(LED_BANK, LED_PIN, 1, BLINK_SLOW, LED_ON_STATE);
 
             if (dfuUploadStarted())
             {
                 dfuFinishUpload(); // systemHardReset from DFU once done
             }
-						testLoader() ;
+			testLoader() ;
         }
     }
-		
-    if (checkUserCode(USER_CODE_FLASH0X8002000))
-    {
-        jumpToUser(USER_CODE_FLASH0X8002000 );
-    }
-    else
-    {
-//        if (checkUserCode(USER_CODE_FLASH0X8005000))
-//        {
-//            jumpToUser(USER_CODE_FLASH0X8005000);
-//        }
-//        else
-        {
-            // Nothing to execute in either Flash or RAM
-            strobePin(LED_BANK, LED_PIN, 5, BLINK_FAST,LED_ON_STATE);
-            systemHardReset();
-        }
-    }
-
-    return 0;// Added to please the compiler
+	
+    // Jump to the main app code
+    jumpToUser(USER_CODE_FLASH0X8002000);
 }
