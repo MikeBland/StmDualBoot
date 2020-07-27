@@ -150,7 +150,7 @@ void setupCLK(void) {
     pRCC->APB1ENR |= RCC_APB1ENR_USB_CLK;
 }
 
-
+/*
 void setupLEDAndButton (void)
 {
     // SET_REG(AFIO_MAPR,(GET_REG(AFIO_MAPR) & ~AFIO_MAPR_SWJ_CFG) | AFIO_MAPR_SWJ_CFG_NO_JTAG_NO_SW);// Try to disable SWD AND JTAG so we can use those pins (not sure if this works).
@@ -172,6 +172,7 @@ void setupLEDAndButton (void)
 //	pGPIOB->BSRR = 0x00000002 ;
 
 }
+*/
 
 void setupFLASH() {
     /* configure the HSI oscillator */
